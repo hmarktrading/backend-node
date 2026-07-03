@@ -1,0 +1,25 @@
+{
+  "name": "shopify-reactivation-service",
+  "version": "1.0.0",
+  "description": "Production-ready Shopify bulk customer sync to Airtable",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "lint": "eslint src/ server.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "axios-retry": "^4.4.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "winston": "^3.13.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4",
+    "eslint": "^9.5.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
