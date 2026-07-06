@@ -10,7 +10,9 @@ const {
   countActiveRecords,
   getExistingShopifyIds,
   getRecordsToArchive,
+  getRecordsToFollowUp,
   insertIntoArchive,
+  insertIntoFollowUp,
   deleteFromPipeline,
   insertBatch,
 } = require('./pipelineAirtableService');
@@ -35,6 +37,35 @@ async function archiveCompletedRecords() {
   logger.info(`[pipeline:archive] Deleted ${deleted} records from active pipeline`);
 
   return { archived, deleted };
+}
+
+/**
+ * STEP 1b — Move Follow Up records out to the Follow Up Customers table
+ *
+ * Same treatment as archiving: any record with Status = 'Follow Up' gets
+ * moved to its own table and removed from the active pipeline, freeing up
+ * its quota slot for a brand new customer on this same run.
+ */
+async function moveFollowUpRecords() {
+  logger.info('[pipeline:followup] Fetching Follow Up records to move...');
+
+  const records = await getRecordsToFollowUp();
+
+  if (records.length === 0) {
+    logger.info('[pipeline:followup] No Follow Up records to move today.');
+    return { moved: 0, deleted: 0 };
+  }
+
+  logger.info(`[pipeline:followup] Found ${records.length} Follow Up records to move`);
+
+  const moved = await insertIntoFollowUp(records);
+  logger.info(`[pipeline:followup] Inserted ${moved} records into Follow Up Customers table`);
+
+  const recordIds = records.map((r) => r.id);
+  const deleted = await deleteFromPipeline(recordIds);
+  logger.info(`[pipeline:followup] Deleted ${deleted} records from active pipeline`);
+
+  return { moved, deleted };
 }
 
 async function computeDailyQuota() {
@@ -174,6 +205,7 @@ async function runDailyPipeline(bulkUrl, filterOptions = {}) {
   logger.info('[pipeline] ═══ Daily Pipeline Job Started ═══');
 
   const archiveResult = await archiveCompletedRecords();
+  const followUpResult = await moveFollowUpRecords();
   const quotaResult = await computeDailyQuota();
   const fillResult = await fillPipeline(bulkUrl, quotaResult.freshSlots, filterOptions);
 
@@ -182,6 +214,7 @@ async function runDailyPipeline(bulkUrl, filterOptions = {}) {
   const summary = {
     success: true,
     archive: archiveResult,
+    followUp: followUpResult,
     quota: quotaResult,
     fill: fillResult,
     executionTime: `${executionTime} seconds`,

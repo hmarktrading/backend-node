@@ -27,8 +27,10 @@ module.exports = {
     baseId: process.env.AIRTABLE_BASE_ID,
     // Main pipeline table (Inactive Caller Pipeline)
     table: process.env.AIRTABLE_TABLE,
-    // Archive table (same base, different table)
+    // Archive table (same base, different table) — for Not Interested / Reactivated
     archiveTable: process.env.AIRTABLE_ARCHIVE_TABLE || 'Archived Customers',
+    // Follow Up table (same base, different table) — for Follow Up status
+    followUpTable: process.env.AIRTABLE_FOLLOWUP_TABLE || 'Follow Up Customers',
     batchSize: parseInt(process.env.AIRTABLE_BATCH_SIZE, 10) || 10,
     requestTimeoutMs: parseInt(process.env.AIRTABLE_REQUEST_TIMEOUT_MS, 10) || 30000,
     maxRetries: parseInt(process.env.AIRTABLE_MAX_RETRIES, 10) || 3,
@@ -53,9 +55,13 @@ module.exports = {
   pipeline: {
     // Max active records in the caller pipeline at any time
     dailyQuota: parseInt(process.env.PIPELINE_DAILY_QUOTA, 10) || 150,
-    // Statuses that count as "active" (take up quota slots)
-    activeStatuses: ['Follow Up', ''],
-    // Statuses that trigger archiving
+    // Statuses that count as "active" and hold a quota slot.
+    // Follow Up is NOT here — it's moved out to its own table every run,
+    // same as archiving, so it never sits in the active table across runs.
+    activeStatuses: [''],
+    // Statuses that trigger moving the record to Archived Customers
     archiveStatuses: ['Not Interested', 'Reactivated'],
+    // Status that triggers moving the record to Follow Up Customers
+    followUpStatus: 'Follow Up',
   },
 };
